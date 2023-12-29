@@ -1,6 +1,8 @@
 // Import necessary modules
 const { projects, clients } = require("../sampledata.js"); // Import client and project data
 const graphql = require("graphql"); // Import GraphQL library
+const Project = require("../models/Project.js");
+const Client = require("../models/Client.js");
 
 // Extract commonly used GraphQL types for clarity
 const {
@@ -9,6 +11,7 @@ const {
   GraphQLString,
   GraphQLSchema,
   GraphQLList,
+  GraphQLNonNull,
 } = graphql;
 
 // **Client Schema Definition**
@@ -34,7 +37,7 @@ const ProjectType = new GraphQLObjectType({
     client: {
       type: ClientType,
       resolve(parentValue, args) {
-        return clients.find((client) => client.id === parentValue.id);
+        return clients.findById(parent.clientId);
       },
     },
   }),
@@ -50,7 +53,7 @@ const RootQuery = new GraphQLObjectType({
       type: new GraphQLList(ClientType),
       resolve(parentValue, args) {
         // Resolve function to fetch client data
-        return clients;
+        return Client.find();
       },
     },
     // Client retrieval field
@@ -58,13 +61,13 @@ const RootQuery = new GraphQLObjectType({
       type: ClientType, // Returns a Client object
       args: { id: { type: GraphQLID } }, // Argument to specify the client to fetch
       resolve(parentValue, args) {
-        return clients.find((client) => client.id === args.id);
+        return Client.findById(arg.id);
       },
     },
     Projects: {
       type: new GraphQLList(ProjectType),
       resolve(parentValue, args) {
-        return projects;
+        return Project.find();
       },
     },
 
@@ -72,7 +75,31 @@ const RootQuery = new GraphQLObjectType({
       type: ProjectType, // Returns a Client object
       args: { id: { type: GraphQLID } }, // Argument to specify the client to fetch
       resolve(parentValue, args) {
-        return projects.find((project) => project.id === args.id);
+        return Project.findById(args.id);
+      },
+    },
+  },
+});
+
+//**MUTATIONS */
+const mutation = new GraphQLObjectType({
+  name: "Mutation",
+  fields: {
+    addClient: {
+      type: ClientType,
+      args: {
+        name: { type: GraphQLNonNull(GraphQLString) },
+        email: { type: GraphQLNonNull(GraphQLString) },
+        phone: { type: GraphQLNonNull(GraphQLString) },
+      },
+      resolve(parent, args) {
+        const client = new Client({
+          name: args.name,
+          email: args.email,
+          phone: args.phone,
+        });
+
+        return client.save();
       },
     },
   },
@@ -82,4 +109,5 @@ const RootQuery = new GraphQLObjectType({
 // Create the GraphQL schema, making the RootQueryType available for queries
 module.exports = new GraphQLSchema({
   query: RootQuery, // Specify RootQueryType as the query root
+  mutation,
 });

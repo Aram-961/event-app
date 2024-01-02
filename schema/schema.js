@@ -161,15 +161,42 @@ const mutation = new GraphQLObjectType({
       },
 
       resolve(parent, args) {
-        return Project.findByIdAndDelete(args.id)
-          .then((deletedProject) => {
-            console.log("Deleted Project:", deletedProject);
-            return deletedProject;
-          })
-          .catch((error) => {
-            console.error("Error deleting project:", error);
-            throw error; // Re-throw the error to propagate it to the GraphQL response
-          });
+        return Project.findByIdAndDelete(args.id);
+      },
+    },
+
+    // Update Project
+    updateProject: {
+      type: ProjectType,
+      args: {
+        id: { type: GraphQLNonNull(GraphQLID) },
+        name: { type: GraphQLString },
+        description: { type: GraphQLString },
+
+        status: {
+          type: new GraphQLEnumType({
+            name: "ProjectStatusUpdate",
+            values: {
+              new: { value: "Not Started" },
+              progress: { value: "in progress" },
+              completed: { value: "completed" },
+            },
+          }),
+        },
+      },
+      resolve(parent, args) {
+        return Project.findByIdAndUpdate(
+          args.id,
+          {
+            $set: {
+              name: args.name,
+              description: args.description,
+              status: args.status,
+            },
+          },
+          // True means if project doesn't exist, create a new one
+          { new: true }
+        );
       },
     },
   },
